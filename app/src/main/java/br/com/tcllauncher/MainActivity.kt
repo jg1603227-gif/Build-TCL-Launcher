@@ -90,7 +90,7 @@ class MainActivity : Activity() {
     private fun buildShell() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setBackgroundColor(background)
+            setBackgroundColor(this@MainActivity.background)
             setPadding(dp(22), dp(18), dp(24), dp(18))
         }
 
