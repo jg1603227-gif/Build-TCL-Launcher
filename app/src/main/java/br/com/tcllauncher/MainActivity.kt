@@ -22,9 +22,84 @@ import android.widget.Toast
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.LayerDrawable
+import android.net.Uri
 
 class MainActivity : Activity() {
+    
+    private val wallpaperRequest = 4101
+    private fun openWallpaperPicker() {
+    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = "image/*"
+        addFlags(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        )
+    }
 
+    startActivityForResult(intent, wallpaperRequest)
+}
+
+override fun onActivityResult(
+    requestCode: Int,
+    resultCode: Int,
+    data: Intent?
+) {
+    super.onActivityResult(requestCode, resultCode, data)
+
+    if (requestCode == wallpaperRequest && resultCode == RESULT_OK) {
+        val uri = data?.data ?: return
+
+        try {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (_: Exception) {}
+
+        getSharedPreferences("launcher", MODE_PRIVATE)
+            .edit()
+            .putString("wallpaper_uri", uri.toString())
+            .apply()
+
+        recreate()
+    }
+}
+
+private fun applyCustomWallpaper(view: View) {
+    val savedUri = getSharedPreferences(
+        "launcher", MODE_PRIVATE
+    ).getString("wallpaper_uri", null) ?: return
+
+    try {
+        val uri = Uri.parse(savedUri)
+
+        val bitmap = contentResolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it)
+        } ?: return
+
+        val image = BitmapDrawable(resources, bitmap).apply {
+            gravity = Gravity.FILL
+        }
+
+        view.background = LayerDrawable(
+            arrayOf(
+                image,
+                ColorDrawable(Color.argb(155, 8, 9, 15))
+            )
+        )
+    } catch (_: Exception) {
+        Toast.makeText(
+            this,
+            "Não foi possível carregar o plano de fundo.",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+}
     private val bg = Color.rgb(8, 9, 15)
     private val panel = Color.rgb(19, 21, 31)
     private val card = Color.rgb(28, 31, 44)
@@ -271,6 +346,7 @@ class MainActivity : Activity() {
         mainLp.leftMargin = dp(18)
         root.addView(main, mainLp)
 
+        applyCustomWallpaper(root)
         setContentView(root)
 
         setSidebarExpanded(false)
@@ -574,77 +650,81 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun addAppRows(apps: List<ResolveInfo>) {
-        var index = 0
+    
+private fun addAppRows(apps: List<ResolveInfo>) {
+    var index = 0
 
-        while (index < apps.size) {
-            val appRow = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-            }
+    while (index < apps.size) {
+        val appRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
 
-            val end = minOf(index + 4, apps.size)
+        val end = minOf(index + 4, apps.size)
 
-            for (i in index until end) {
-                val info = apps[i]
+        for (i in index until end) {
+            val info = apps[i]
 
-                val tile = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    gravity = Gravity.CENTER
-                    background = rounded(card, 16)
-                    setPadding(dp(8), dp(11), dp(8), dp(10))
-                    isFocusable = true
-                    isClickable = true
+            val tile = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                background = rounded(Color.TRANSPARENT, 18)
+                setPadding(dp(8), dp(11), dp(8), dp(10))
+                isFocusable = true
+                isClickable = true
 
-                    addView(
-                        ImageView(this@MainActivity).apply {
-                            setImageDrawable(
-                                info.loadIcon(packageManager)
-                            )
-                            scaleType = ImageView.ScaleType.FIT_CENTER
-                        },
-                        LinearLayout.LayoutParams(dp(45), dp(45))
-                    )
-
-                    addView(
-                        label(
-                            info.loadLabel(packageManager).toString(),
-                            12f, white, true
-                        ).apply {
-                            gravity = Gravity.CENTER
-                            maxLines = 2
-                            setPadding(0, dp(7), 0, 0)
-                        },
-                        LinearLayout.LayoutParams(-1, dp(36))
-                    )
-
-                    setOnClickListener {
-                        launchApp(info)
-                    }
-
-                    setOnFocusChangeListener { v, focused ->
-                        if (focused) setSidebarExpanded(false)
-                        v.background = rounded(
-                            if (focused) purple else card,
-                            16,
-                            if (focused) neon else Color.TRANSPARENT
+                addView(
+                    ImageView(this@MainActivity).apply {
+                        setImageDrawable(
+                            info.loadIcon(packageManager)
                         )
-                        v.scaleX = if (focused) 1.06f else 1f
-                        v.scaleY = if (focused) 1.06f else 1f
-                    }
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                    },
+                    LinearLayout.LayoutParams(dp(48), dp(48))
+                )
+
+                addView(
+                    label(
+                        info.loadLabel(packageManager).toString(),
+                        12f, white, true
+                    ).apply {
+                        gravity = Gravity.CENTER
+                        maxLines = 2
+                        setPadding(0, dp(7), 0, 0)
+                    },
+                    LinearLayout.LayoutParams(-1, dp(36))
+                )
+
+                setOnClickListener {
+                    launchApp(info)
                 }
 
-                val lp = LinearLayout.LayoutParams(
-                    dp(135), dp(112)
-                )
-                lp.rightMargin = dp(11)
-                lp.bottomMargin = dp(11)
-                appRow.addView(tile, lp)
+                setOnFocusChangeListener { v, focused ->
+                    if (focused) setSidebarExpanded(false)
+
+                    v.background = rounded(
+                        if (focused) purple else Color.TRANSPARENT,
+                        18,
+                        if (focused) neon else Color.TRANSPARENT
+                    )
+
+                    v.scaleX = if (focused) 1.06f else 1f
+                    v.scaleY = if (focused) 1.06f else 1f
+                }
             }
 
-            content.addView(appRow)
-            index = end
+            val lp = LinearLayout.LayoutParams(
+                dp(135), dp(112)
+            )
+            lp.rightMargin = dp(11)
+            lp.bottomMargin = dp(11)
+            appRow.addView(tile, lp)
         }
+
+        content.addView(appRow)
+        index = end
     }
+}
+
 
     private fun launchApp(info: ResolveInfo) {
         val intent = Intent(Intent.ACTION_MAIN).apply {
@@ -692,82 +772,88 @@ class MainActivity : Activity() {
         ).any { text.contains(it) }
     }
 
-    private fun showSettings() {
-        heading(
-            "Configurações",
-            "Personalize sua experiência no TCL Launcher."
-        )
+    
+private fun showSettings() {
+    heading(
+        "Configurações",
+        "Personalize sua experiência no TCL Launcher."
+    )
 
-        val options = listOf(
-            "Atualizar aplicativos" to
-                "Recarrega a lista de aplicativos da TV.",
-            "Configurações do Android" to
-                "Abre as configurações do sistema.",
-            "Sobre o launcher" to
-                "TCL Launcher 2.0 • Neon Edition."
-        )
+    val options = listOf(
+        "Personalizar plano de fundo" to
+            "Escolha uma imagem da galeria para sua TV.",
+        "Atualizar aplicativos" to
+            "Recarrega a lista de aplicativos da TV.",
+        "Configurações do Android" to
+            "Abre as configurações do sistema.",
+        "Sobre o launcher" to
+            "TCL Launcher 2.0 • Neon Edition."
+    )
 
-        options.forEach { (title, description) ->
-            val item = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(18), dp(12), dp(18), dp(12))
-                background = rounded(card, 15)
-                isFocusable = true
-                isClickable = true
+    options.forEach { (title, description) ->
+        val item = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(18), dp(12), dp(18), dp(12))
+            background = rounded(card, 15)
+            isFocusable = true
+            isClickable = true
 
-                addView(label(title, 16f, white, true))
-                addView(
-                    label(description, 13f, muted).apply {
-                        setPadding(0, dp(5), 0, 0)
-                    }
+            addView(label(title, 16f, white, true))
+
+            addView(
+                label(description, 13f, muted).apply {
+                    setPadding(0, dp(5), 0, 0)
+                }
+            )
+
+            setOnFocusChangeListener { v, focused ->
+                v.background = rounded(
+                    if (focused) purple else card,
+                    15,
+                    if (focused) neon else Color.TRANSPARENT
                 )
-
-                setOnFocusChangeListener { v, focused ->
-                    v.background = rounded(
-                        if (focused) purple else card,
-                        15,
-                        if (focused) neon else Color.TRANSPARENT
-                    )
-                }
-
-                setOnClickListener {
-                    when (title) {
-                        "Atualizar aplicativos" ->
-                            showSection("Aplicativos")
-
-                        "Configurações do Android" -> {
-                            try {
-                                startActivity(
-                                    Intent(
-                                        android.provider.Settings.ACTION_SETTINGS
-                                    )
-                                )
-                            } catch (_: Exception) {
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    "Configurações indisponíveis.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
-
-                        else -> Toast.makeText(
-                            this@MainActivity,
-                            "TCL Launcher 2.0 • Neon Edition",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-
-                prepareContentFocus(this)
             }
 
-            val lp = LinearLayout.LayoutParams(-1, dp(76))
-            lp.bottomMargin = dp(10)
-            content.addView(item, lp)
+            setOnClickListener {
+                when (title) {
+                    "Personalizar plano de fundo" ->
+                        openWallpaperPicker()
+
+                    "Atualizar aplicativos" ->
+                        showSection("Aplicativos")
+
+                    "Configurações do Android" -> {
+                        try {
+                            startActivity(
+                                Intent(
+                                    android.provider.Settings.ACTION_SETTINGS
+                                )
+                            )
+                        } catch (_: Exception) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Configurações indisponíveis.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+
+                    else -> Toast.makeText(
+                        this@MainActivity,
+                        "TCL Launcher 2.0 • Neon Edition",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
         }
+
+        val lp = LinearLayout.LayoutParams(-1, dp(76))
+        lp.bottomMargin = dp(10)
+        content.addView(item, lp)
     }
 }
 
+
+            
   
