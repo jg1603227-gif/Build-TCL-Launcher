@@ -648,19 +648,23 @@ private fun showHome() {
         orientation = LinearLayout.HORIZONTAL
     }
 
-    val memoryManager =
-    getSystemService(ACTIVITY_SERVICE) as ActivityManager
+    
+val memoryManager = getSystemService(
+    android.content.Context.ACTIVITY_SERVICE
+) as android.app.ActivityManager
 
-val memoryInfo = ActivityManager.MemoryInfo()
+val memoryInfo = android.app.ActivityManager.MemoryInfo()
+
 memoryManager.getMemoryInfo(memoryInfo)
 
 val ramUsed = memoryInfo.totalMem - memoryInfo.availMem
 
 val ramPercent = if (memoryInfo.totalMem > 0L) {
-    ((ramUsed * 100L) / memoryInfo.totalMem).toInt()
+    (ramUsed.toDouble() / memoryInfo.totalMem.toDouble() * 100.0).toInt()
 } else {
     0
 }
+
 
     val stat = android.os.StatFs(
         android.os.Environment.getDataDirectory().path
@@ -675,9 +679,11 @@ val ramPercent = if (memoryInfo.totalMem > 0L) {
     val usedStorage = totalStorage - freeStorage
 
     val storagePercent =
-        if (totalStorage > 0)
-            (usedStorage * 100 / totalStorage).toInt()
-        else 0
+    if (totalStorage > 0L) {
+        (usedStorage.toDouble() / totalStorage.toDouble() * 100.0).toInt()
+    } else {
+        0
+    }
 
     fun addWidget(
         title: String,
