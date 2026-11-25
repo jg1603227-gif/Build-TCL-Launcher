@@ -649,14 +649,18 @@ private fun showHome() {
     }
 
     val memoryManager =
-        getSystemService(ACTIVITY_SERVICE) as ActivityManager
+    getSystemService(ACTIVITY_SERVICE) as ActivityManager
 
-    val memoryInfo = ActivityManager.MemoryInfo()
-    memoryManager.getMemoryInfo(memoryInfo)
+val memoryInfo = ActivityManager.MemoryInfo()
+memoryManager.getMemoryInfo(memoryInfo)
 
-    val ramUsed = memoryInfo.totalMem - memoryInfo.availMem
-    val ramPercent =
-        (ramUsed * 100 / memoryInfo.totalMem).toInt()
+val ramUsed = memoryInfo.totalMem - memoryInfo.availMem
+
+val ramPercent = if (memoryInfo.totalMem > 0L) {
+    ((ramUsed * 100L) / memoryInfo.totalMem).toInt()
+} else {
+    0
+}
 
     val stat = android.os.StatFs(
         android.os.Environment.getDataDirectory().path
