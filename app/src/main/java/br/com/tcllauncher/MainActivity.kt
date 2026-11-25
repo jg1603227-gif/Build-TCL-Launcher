@@ -24,33 +24,43 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : Activity() {
-    private val background = Color.rgb(10, 12, 18)
-    private val panel = Color.rgb(20, 24, 34)
-    private val panelSoft = Color.rgb(27, 32, 44)
-    private val accent = Color.rgb(111, 92, 255)
-    private val white = Color.rgb(245, 247, 252)
-    private val muted = Color.rgb(153, 162, 180)
+
+    private val bg = Color.rgb(8, 9, 15)
+    private val panel = Color.rgb(19, 21, 31)
+    private val card = Color.rgb(28, 31, 44)
+    private val purple = Color.rgb(137, 79, 255)
+    private val neon = Color.rgb(174, 112, 255)
+    private val white = Color.rgb(245, 245, 255)
+    private val muted = Color.rgb(145, 150, 170)
+
     private lateinit var content: LinearLayout
+    private lateinit var sidebar: LinearLayout
+    private lateinit var sidebarParams: LinearLayout.LayoutParams
     private lateinit var clock: TextView
-    private var selectedSection = "Início"
+
+    private val navLabels = mutableListOf<TextView>()
+    private var expanded = false
+    private var selected = "Início"
+
     private val handler = Handler(Looper.getMainLooper())
 
     private val clockTick = object : Runnable {
         override fun run() {
-            if (::clock.isInitialized)
+            if (::clock.isInitialized) {
                 clock.text = SimpleDateFormat(
                     "EEE, dd MMM  •  HH:mm",
                     Locale("pt", "BR")
                 ).format(Date())
-
+            }
             handler.postDelayed(this, 30_000)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = background
-        window.navigationBarColor = background
+
+        window.statusBarColor = bg
+        window.navigationBarColor = bg
         window.decorView.systemUiVisibility =
             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
 
@@ -67,110 +77,164 @@ class MainActivity : Activity() {
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
 
-    private fun rounded(color: Int, radius: Int = 18): GradientDrawable =
-        GradientDrawable().apply {
+    private fun rounded(
+        color: Int,
+        radius: Int = 18,
+        stroke: Int = Color.TRANSPARENT
+    ): GradientDrawable {
+        return GradientDrawable().apply {
             setColor(color)
             cornerRadius = dp(radius).toFloat()
+            if (stroke != Color.TRANSPARENT) {
+                setStroke(dp(1), stroke)
+            }
+        }
+    }
+
+    private fun gradient(): GradientDrawable =
+        GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            intArrayOf(
+                Color.rgb(65, 35, 125),
+                Color.rgb(35, 26, 76),
+                Color.rgb(20, 22, 39)
+            )
+        ).apply {
+            cornerRadius = dp(24).toFloat()
         }
 
     private fun label(
-        value: String,
+        textValue: String,
         size: Float,
         color: Int,
         bold: Boolean = false
-    ): TextView = TextView(this).apply {
-        text = value
-        textSize = size
-        setTextColor(color)
-        if (bold) typeface =
-            Typeface.create("sans-serif", Typeface.BOLD)
-        includeFontPadding = true
+    ): TextView {
+        return TextView(this).apply {
+            text = textValue
+            textSize = size
+            setTextColor(color)
+            if (bold) {
+                typeface = Typeface.create(
+                    "sans-serif",
+                    Typeface.BOLD
+                )
+            }
+            includeFontPadding = true
+        }
     }
 
     private fun buildShell() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setBackgroundColor(this@MainActivity.background)
-            setPadding(dp(22), dp(18), dp(24), dp(18))
+            setPadding(dp(16), dp(15), dp(20), dp(15))
+            setBackgroundColor(bg)
         }
 
-        val sidebar = LinearLayout(this).apply {
+        sidebar = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(14), dp(12), dp(14))
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            setPadding(dp(9), dp(15), dp(9), dp(12))
             background = rounded(panel, 22)
         }
 
-        val brand = label("TCL", 27f, white, true).apply {
-            setPadding(dp(12), dp(8), 0, dp(2))
+        sidebarParams = LinearLayout.LayoutParams(
+            dp(76), -1
+        )
+
+        root.addView(sidebar, sidebarParams)
+
+        val brand = label("T", 27f, neon, true).apply {
+            gravity = Gravity.CENTER
+            setPadding(0, dp(5), 0, dp(18))
         }
         sidebar.addView(brand)
 
-        sidebar.addView(
-            label("L A U N C H E R", 9f, muted, true).apply {
-                setPadding(dp(13), 0, 0, dp(28))
-            }
-        )
+        navLabels.clear()
 
         val items = listOf(
-            "Início" to "⌂",
-            "Aplicativos" to "▦",
-            "Filmes e séries" to "▶",
-            "Música" to "♫",
-            "Configurações" to "⚙"
+            Triple("Início", "⌂", "Início"),
+            Triple("Aplicativos", "▦", "Aplicativos"),
+            Triple("Filmes e séries", "▶", "Filmes"),
+            Triple("Música", "♫", "Música"),
+            Triple("Configurações", "⚙", "Configurações")
         )
 
-        items.forEach { (name, symbol) ->
+        items.forEach { (name, symbol, description) ->
+
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 isFocusable = true
                 isClickable = true
-                setPadding(dp(13), 0, dp(10), 0)
+                setPadding(dp(12), 0, dp(8), 0)
                 background = rounded(
-                    if (name == selectedSection) accent
+                    if (selected == name) purple
                     else Color.TRANSPARENT, 14
                 )
-                contentDescription = name
 
                 addView(
-                    label(symbol, 22f, white, true),
-                    LinearLayout.LayoutParams(dp(34), -2)
+                    label(symbol, 23f, white, true),
+                    LinearLayout.LayoutParams(dp(36), -2)
                 )
 
-                addView(label(name, 14f, white, name == selectedSection))
+                val title = label(
+                    description, 13f, white,
+                    selected == name
+                )
+                title.visibility = View.GONE
+                navLabels.add(title)
 
-                setOnClickListener { showSection(name) }
+                addView(
+                    title,
+                    LinearLayout.LayoutParams(0, -2, 1f)
+                )
+
+                contentDescription = name
+
+                setOnClickListener {
+                    showSection(name)
+                }
 
                 setOnFocusChangeListener { v, focused ->
-                    if (name != selectedSection)
-                        v.background = rounded(
-                            if (focused) panelSoft
-                            else Color.TRANSPARENT, 14
-                        )
+                    if (focused) {
+                        setSidebarExpanded(true)
+                    }
 
-                    v.scaleX = if (focused) 1.035f else 1f
-                    v.scaleY = if (focused) 1.035f else 1f
+                    if (name != selected) {
+                        v.background = rounded(
+                            if (focused) card
+                            else Color.TRANSPARENT,
+                            14,
+                            if (focused) purple
+                            else Color.TRANSPARENT
+                        )
+                    }
+
+                    v.scaleX = if (focused) 1.04f else 1f
+                    v.scaleY = if (focused) 1.04f else 1f
                 }
             }
 
-            val lp = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(52)
-            )
+            val lp = LinearLayout.LayoutParams(-1, dp(51))
             lp.bottomMargin = dp(7)
             sidebar.addView(item, lp)
         }
 
-        sidebar.addView(View(this), LinearLayout.LayoutParams(1, 0, 1f))
+        sidebar.addView(
+            View(this),
+            LinearLayout.LayoutParams(1, 0, 1f)
+        )
 
         sidebar.addView(
-            label("VERSÃO 2.0  •  TV", 9f, muted).apply {
-                setPadding(dp(12), dp(8), 0, 0)
+            label("2.0", 10f, muted, true).apply {
+                gravity = Gravity.CENTER
+                setPadding(0, dp(8), 0, dp(4))
             }
         )
 
         val main = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(28), dp(4), 0, 0)
+            setPadding(dp(22), dp(3), 0, 0)
         }
 
         val top = LinearLayout(this).apply {
@@ -179,11 +243,11 @@ class MainActivity : Activity() {
         }
 
         top.addView(
-            label("SEU ESPAÇO", 11f, muted, true),
+            label("TCL  /  NEON EDITION", 11f, neon, true),
             LinearLayout.LayoutParams(0, -2, 1f)
         )
 
-        clock = label("", 14f, muted)
+        clock = label("", 13f, muted)
         top.addView(clock)
 
         main.addView(top, LinearLayout.LayoutParams(-1, dp(42)))
@@ -198,21 +262,67 @@ class MainActivity : Activity() {
             addView(content)
         }
 
-        main.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-
-        root.addView(sidebar, LinearLayout.LayoutParams(dp(205), -1))
+        main.addView(
+            scroll,
+            LinearLayout.LayoutParams(-1, 0, 1f)
+        )
 
         val mainLp = LinearLayout.LayoutParams(0, -1, 1f)
-        mainLp.leftMargin = dp(24)
+        mainLp.leftMargin = dp(18)
         root.addView(main, mainLp)
 
         setContentView(root)
+
+        setSidebarExpanded(false)
+    }
+
+    private fun setSidebarExpanded(value: Boolean) {
+        if (!::sidebar.isInitialized) return
+
+        expanded = value
+
+        sidebarParams.width = dp(if (value) 210 else 76)
+        sidebar.layoutParams = sidebarParams
+
+        navLabels.forEach {
+            it.visibility = if (value) View.VISIBLE else View.GONE
+        }
+
+        sidebar.requestLayout()
     }
 
     private fun showSection(section: String) {
-        selectedSection = section
-        buildShell()
+        selected = section
         content.removeAllViews()
+
+        val names = listOf(
+            "Início", "Aplicativos",
+            "Filmes e séries", "Música",
+            "Configurações"
+        )
+
+        val navItems = sidebar.childrenViews()
+
+        navItems.forEachIndexed { index, view ->
+            if (index < names.size) {
+                view.background = rounded(
+                    if (names[index] == section) purple
+                    else Color.TRANSPARENT, 14
+                )
+            }
+        }
+
+        navLabels.forEachIndexed { index, view ->
+            view.setTypeface(
+                Typeface.DEFAULT,
+                if (index < names.size &&
+                    names[index] == section) {
+                    Typeface.BOLD
+                } else {
+                    Typeface.NORMAL
+                }
+            )
+        }
 
         when (section) {
             "Início" -> showHome()
@@ -231,120 +341,194 @@ class MainActivity : Activity() {
             "Configurações" -> showSettings()
         }
 
+        setSidebarExpanded(false)
+
         content.post {
             firstFocusable(content)?.requestFocus()
         }
+    }
+
+    private fun LinearLayout.childrenViews(): List<View> {
+        val result = mutableListOf<View>()
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
+            if (child.isFocusable) result.add(child)
+        }
+        return result
     }
 
     private fun firstFocusable(group: ViewGroup): View? {
         for (i in 0 until group.childCount) {
             val child = group.getChildAt(i)
             if (child.isFocusable) return child
-            if (child is ViewGroup)
+            if (child is ViewGroup) {
                 firstFocusable(child)?.let { return it }
+            }
         }
         return null
     }
 
-    private fun sectionHeading(title: String, subtitle: String) {
+    private fun prepareContentFocus(view: View) {
+        view.setOnFocusChangeListener { _, focused ->
+            if (focused) setSidebarExpanded(false)
+        }
+    }
+
+    private fun heading(title: String, subtitle: String) {
         content.addView(
-            label(title, 31f, white, true).apply {
-                setPadding(0, dp(24), 0, dp(5))
+            label(title, 28f, white, true).apply {
+                setPadding(0, dp(17), 0, dp(4))
             }
         )
 
         content.addView(
-            label(subtitle, 15f, muted).apply {
-                setPadding(0, 0, 0, dp(22))
+            label(subtitle, 14f, muted).apply {
+                setPadding(0, 0, 0, dp(17))
             }
         )
     }
 
     private fun showHome() {
+
         val hero = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(28), dp(22), dp(28), dp(22))
-            background = rounded(Color.rgb(32, 31, 57), 22)
+            setPadding(dp(27), dp(23), dp(27), dp(23))
+            background = gradient()
         }
 
-        hero.addView(label("TCL  /  HOME", 11f, Color.rgb(178, 168, 255), true))
-
         hero.addView(
-            label("Tudo o que você gosta.\nEm um só lugar.", 30f, white, true)
-                .apply { setPadding(0, dp(10), 0, dp(8)) }
+            label("TCL  /  NEON EDITION", 11f, neon, true)
         )
 
         hero.addView(
             label(
-                "Acesse seus aplicativos e continue de onde quiser.",
-                14f, muted
+                "Sua TV.\nSua experiência.",
+                32f, white, true
+            ).apply {
+                setPadding(0, dp(9), 0, dp(8))
+            }
+        )
+
+        hero.addView(
+            label(
+                "Seus aplicativos e entretenimento em um só lugar.",
+                14f, Color.rgb(220, 215, 245)
             )
         )
 
-        val heroLp = LinearLayout.LayoutParams(-1, dp(190))
-        heroLp.topMargin = dp(18)
+        val heroLp = LinearLayout.LayoutParams(-1, dp(178))
+        heroLp.topMargin = dp(12)
         content.addView(hero, heroLp)
 
+        val explore = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isFocusable = true
+            isClickable = true
+            background = rounded(panel, 13, purple)
+            setPadding(dp(15), dp(10), dp(15), dp(10))
+            addView(label("✦", 19f, neon, true))
+            addView(
+                label("  Explorar aplicativos", 13f, white, true)
+            )
+            setOnClickListener {
+                showSection("Aplicativos")
+            }
+            prepareContentFocus(this)
+        }
+
+        val exploreLp = LinearLayout.LayoutParams(-2, dp(43))
+        exploreLp.topMargin = dp(12)
+        content.addView(explore, exploreLp)
+
         content.addView(
-            label("Acesso rápido", 21f, white, true).apply {
-                setPadding(0, dp(26), 0, dp(13))
+            label("Acesso rápido", 20f, white, true).apply {
+                setPadding(0, dp(24), 0, dp(12))
             }
         )
 
         val quick = allApps().take(6)
 
-        if (quick.isEmpty())
-            emptyMessage("Nenhum aplicativo compatível foi encontrado.")
-        else
+        if (quick.isEmpty()) {
+            emptyMessage("Nenhum aplicativo encontrado.")
+        } else {
             addAppRows(quick)
+        }
 
         content.addView(
-            label("Explore", 21f, white, true).apply {
-                setPadding(0, dp(24), 0, dp(12))
+            label("Descubra", 20f, white, true).apply {
+                setPadding(0, dp(22), 0, dp(12))
             }
         )
 
-        val hint = LinearLayout(this).apply {
+        val categories = listOf(
+            Triple("▶", "Filmes e séries", "Filmes e séries"),
+            Triple("♫", "Música", "Música"),
+            Triple("▦", "Biblioteca", "Aplicativos")
+        )
+
+        val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(18), dp(16), dp(18), dp(16))
-            background = rounded(panel, 16)
         }
 
-        hint.addView(
-            label("▦", 25f, accent, true),
-            LinearLayout.LayoutParams(dp(48), -2)
-        )
+        categories.forEach { (icon, title, target) ->
+            val tile = categoryCard(icon, title) {
+                showSection(target)
+            }
 
-        val texts = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+            val lp = LinearLayout.LayoutParams(0, dp(82), 1f)
+            lp.rightMargin = dp(10)
+            row.addView(tile, lp)
         }
 
-        texts.addView(label("Sua biblioteca de aplicativos", 16f, white, true))
-        texts.addView(
-            label(
-                "Abra Aplicativos no menu lateral para ver tudo.",
-                13f, muted
-            )
-        )
-
-        hint.addView(texts)
-        content.addView(hint, LinearLayout.LayoutParams(-1, dp(76)))
+        content.addView(row)
     }
 
-    private fun showAppSection(title: String, apps: List<ResolveInfo>) {
-        sectionHeading(
+    private fun categoryCard(
+        icon: String,
+        title: String,
+        action: () -> Unit
+    ): View {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            background = rounded(card, 15)
+            isFocusable = true
+            isClickable = true
+
+            addView(label(icon, 22f, neon, true))
+            addView(
+                label(title, 12f, white, true).apply {
+                    gravity = Gravity.CENTER
+                }
+            )
+
+            setOnClickListener { action() }
+
+            prepareContentFocus(this)
+
+            setOnFocusChangeListener { v, focused ->
+                if (focused) setSidebarExpanded(false)
+                v.background = rounded(
+                    if (focused) purple else card, 15
+                )
+            }
+        }
+    }
+
+    private fun showAppSection(
+        title: String,
+        apps: List<ResolveInfo>
+    ) {
+        heading(
             title,
-            if (apps.isEmpty())
-                "Não encontramos aplicativos nesta categoria."
-            else
-                "Selecione um aplicativo usando o controle remoto."
+            "Escolha um aplicativo usando o controle remoto."
         )
 
         if (apps.isEmpty()) {
             emptyMessage(
-                "Os aplicativos instalados que oferecem abertura pela tela inicial aparecerão aqui."
+                "Nenhum aplicativo encontrado nesta categoria."
             )
         } else {
             addAppRows(apps)
@@ -353,14 +537,13 @@ class MainActivity : Activity() {
 
     private fun emptyMessage(message: String) {
         content.addView(
-            label(message, 15f, muted).apply {
-                setPadding(dp(4), dp(18), dp(4), dp(18))
+            label(message, 14f, muted).apply {
+                setPadding(dp(4), dp(15), dp(4), dp(15))
             }
         )
     }
 
     private fun allApps(): List<ResolveInfo> {
-        val pm = packageManager
         val found = LinkedHashMap<String, ResolveInfo>()
 
         val categories = listOf(
@@ -369,27 +552,29 @@ class MainActivity : Activity() {
         )
 
         categories.forEach { category ->
-            val intent = Intent(Intent.ACTION_MAIN).addCategory(category)
+            val intent = Intent(Intent.ACTION_MAIN)
+                .addCategory(category)
 
             @Suppress("DEPRECATION")
-            val results = pm.queryIntentActivities(
+            val results = packageManager.queryIntentActivities(
                 intent, PackageManager.MATCH_ALL
             )
 
             results.forEach { info ->
                 val pkg = info.activityInfo.packageName
-                if (pkg != packageName && !found.containsKey(pkg))
+                if (pkg != packageName && !found.containsKey(pkg)) {
                     found[pkg] = info
+                }
             }
         }
 
         return found.values.sortedBy {
-            it.loadLabel(pm).toString().lowercase(Locale.getDefault())
+            it.loadLabel(packageManager).toString()
+                .lowercase(Locale.getDefault())
         }
     }
 
     private fun addAppRows(apps: List<ResolveInfo>) {
-        val pm = packageManager
         var index = 0
 
         while (index < apps.size) {
@@ -405,44 +590,54 @@ class MainActivity : Activity() {
                 val tile = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setPadding(dp(10), dp(13), dp(10), dp(12))
-                    background = rounded(panelSoft, 17)
+                    background = rounded(card, 16)
+                    setPadding(dp(8), dp(11), dp(8), dp(10))
                     isFocusable = true
                     isClickable = true
-                    contentDescription = info.loadLabel(pm).toString()
 
                     addView(
                         ImageView(this@MainActivity).apply {
-                            setImageDrawable(info.loadIcon(pm))
+                            setImageDrawable(
+                                info.loadIcon(packageManager)
+                            )
                             scaleType = ImageView.ScaleType.FIT_CENTER
                         },
-                        LinearLayout.LayoutParams(dp(48), dp(48))
+                        LinearLayout.LayoutParams(dp(45), dp(45))
                     )
 
                     addView(
-                        label(info.loadLabel(pm).toString(), 13f, white, true)
-                            .apply {
-                                gravity = Gravity.CENTER
-                                maxLines = 2
-                                setPadding(0, dp(8), 0, 0)
-                            },
-                        LinearLayout.LayoutParams(-1, dp(38))
+                        label(
+                            info.loadLabel(packageManager).toString(),
+                            12f, white, true
+                        ).apply {
+                            gravity = Gravity.CENTER
+                            maxLines = 2
+                            setPadding(0, dp(7), 0, 0)
+                        },
+                        LinearLayout.LayoutParams(-1, dp(36))
                     )
 
-                    setOnClickListener { launchApp(info) }
+                    setOnClickListener {
+                        launchApp(info)
+                    }
 
                     setOnFocusChangeListener { v, focused ->
+                        if (focused) setSidebarExpanded(false)
                         v.background = rounded(
-                            if (focused) accent else panelSoft, 17
+                            if (focused) purple else card,
+                            16,
+                            if (focused) neon else Color.TRANSPARENT
                         )
-                        v.scaleX = if (focused) 1.07f else 1f
-                        v.scaleY = if (focused) 1.07f else 1f
+                        v.scaleX = if (focused) 1.06f else 1f
+                        v.scaleY = if (focused) 1.06f else 1f
                     }
                 }
 
-                val lp = LinearLayout.LayoutParams(dp(142), dp(126))
-                lp.rightMargin = dp(13)
-                lp.bottomMargin = dp(13)
+                val lp = LinearLayout.LayoutParams(
+                    dp(135), dp(112)
+                )
+                lp.rightMargin = dp(11)
+                lp.bottomMargin = dp(11)
                 appRow.addView(tile, lp)
             }
 
@@ -458,7 +653,6 @@ class MainActivity : Activity() {
                 info.activityInfo.packageName,
                 info.activityInfo.name
             )
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
         try {
@@ -466,7 +660,7 @@ class MainActivity : Activity() {
         } catch (_: Exception) {
             Toast.makeText(
                 this,
-                "Não foi possível abrir este aplicativo.",
+                "Não foi possível abrir o aplicativo.",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -475,96 +669,16 @@ class MainActivity : Activity() {
     private fun isVideoApp(info: ResolveInfo): Boolean {
         val text = (
             info.loadLabel(packageManager).toString() +
-            " " + info.activityInfo.packageName
-        ).lowercase(Locale.ROOT)
+                " " + info.activityInfo.packageName
+            ).lowercase(Locale.ROOT)
 
         return listOf(
-            "netflix", "prime", "disney", "max", "hbo",
+            "netflix", "prime", "disney", "max",
             "youtube", "globoplay", "pluto", "plex",
-            "paramount", "crunchyroll", "telecine", "viki"
+            "paramount", "crunchyroll", "telecine"
         ).any { text.contains(it) }
     }
 
     private fun isMusicApp(info: ResolveInfo): Boolean {
         val text = (
-            info.loadLabel(packageManager).toString() +
-            " " + info.activityInfo.packageName
-        ).lowercase(Locale.ROOT)
-
-        return listOf(
-            "spotify", "deezer", "youtube music",
-            "amazon music", "tidal", "soundcloud", "music"
-        ).any { text.contains(it) }
-    }
-
-    private fun showSettings() {
-        sectionHeading(
-            "Configurações",
-            "Ajustes básicos do TCL Launcher."
-        )
-
-        val settings = listOf(
-            "Atualizar lista de aplicativos" to
-                "Recarrega os aplicativos disponíveis na TV.",
-            "Configurações do Android" to
-                "Abre as configurações do sistema da televisão.",
-            "Sobre o launcher" to
-                "TCL Launcher 2.0 • versão inicial de testes."
-        )
-
-        settings.forEach { (title, description) ->
-            val card = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(dp(18), dp(15), dp(18), dp(15))
-                background = rounded(panelSoft, 15)
-                isFocusable = true
-                isClickable = true
-
-                addView(label(title, 16f, white, true))
-
-                addView(
-                    label(description, 13f, muted).apply {
-                        setPadding(0, dp(5), 0, 0)
-                    }
-                )
-
-                setOnFocusChangeListener { v, focused ->
-                    v.background = rounded(
-                        if (focused) accent else panelSoft, 15
-                    )
-                }
-
-                setOnClickListener {
-                    when (title) {
-                        "Atualizar lista de aplicativos" ->
-                            showSection("Aplicativos")
-
-                        "Configurações do Android" ->
-                            try {
-                                startActivity(
-                                    Intent(android.provider.Settings.ACTION_SETTINGS)
-                                )
-                            } catch (_: Exception) {
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    "Configurações indisponíveis.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-
-                        else ->
-                            Toast.makeText(
-                                this@MainActivity,
-                                "TCL Launcher 2.0",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                    }
-                }
-            }
-
-            val lp = LinearLayout.LayoutParams(-1, dp(76))
-            lp.bottomMargin = dp(10)
-            content.addView(card, lp)
-        }
-    }
-}
+  
