@@ -227,12 +227,9 @@ private fun applyCustomWallpaper(view: View) {
         navLabels.clear()
 
         val items = listOf(
-            Triple("Início", "⌂", "Início"),
-            Triple("Aplicativos", "▦", "Aplicativos"),
-            Triple("Filmes e séries", "▶", "Filmes"),
-            Triple("Música", "♫", "Música"),
-            Triple("Configurações", "⚙", "Configurações")
-        )
+    Triple("Início", "⌂", "Início"),
+    Triple("Configurações", "⚙", "Configurações")
+)
 
         items.forEach { (name, symbol, description) ->
 
@@ -464,102 +461,321 @@ private fun applyCustomWallpaper(view: View) {
         )
     }
 
-    private fun showHome() {
+    
+private fun showHome() {
 
-        val hero = LinearLayout(this).apply {
+    val apps = allApps()
+
+    val dashboard = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        setPadding(0, dp(10), 0, dp(10))
+    }
+
+    // LISTA VERTICAL DE APLICATIVOS
+
+    val appColumn = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        background = rounded(panel, 18)
+        setPadding(dp(12), dp(12), dp(12), dp(8))
+    }
+
+    appColumn.addView(
+        label("APLICATIVOS", 13f, neon, true)
+            .apply {
+                setPadding(dp(5), dp(5), 0, dp(12))
+            }
+    )
+
+    val appScroll = ScrollView(this).apply {
+        isFillViewport = true
+        clipToPadding = false
+    }
+
+    val appList = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+    }
+
+    // PAINEL DE PRÉVIA
+
+    val rightColumn = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(15), 0, 0, 0)
+    }
+
+    val preview = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        background = gradient()
+        setPadding(dp(25), dp(20), dp(25), dp(20))
+    }
+
+    fun updatePreview(info: ResolveInfo) {
+        preview.removeAllViews()
+
+        val details = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(27), dp(23), dp(27), dp(23))
-            background = gradient()
         }
 
-        hero.addView(
-            label("TCL  /  NEON EDITION", 11f, neon, true)
-        )
-
-        hero.addView(
+        details.addView(
             label(
-                "Sua TV.\nSua experiência.",
-                32f, white, true
-            ).apply {
-                setPadding(0, dp(9), 0, dp(8))
-            }
-        )
-
-        hero.addView(
-            label(
-                "Seus aplicativos e entretenimento em um só lugar.",
-                14f, Color.rgb(220, 215, 245)
+                "APLICATIVO SELECIONADO",
+                11f, neon, true
             )
         )
 
-        val heroLp = LinearLayout.LayoutParams(-1, dp(178))
-        heroLp.topMargin = dp(12)
-        content.addView(hero, heroLp)
+        details.addView(
+            label(
+                info.loadLabel(packageManager).toString(),
+                27f, white, true
+            ).apply {
+                setPadding(0, dp(10), 0, dp(8))
+            }
+        )
 
-        val explore = LinearLayout(this).apply {
+        details.addView(
+            label(
+                "Aplicativo instalado na sua TCL TV.",
+                14f, muted
+            )
+        )
+
+        details.addView(
+            label(
+                "Pressione OK para abrir",
+                12f, neon, true
+            ).apply {
+                setPadding(0, dp(22), 0, 0)
+            }
+        )
+
+        preview.addView(
+            details,
+            LinearLayout.LayoutParams(0, -1, 1f)
+        )
+
+        preview.addView(
+            ImageView(this).apply {
+                setImageDrawable(
+                    info.loadIcon(packageManager)
+                )
+                scaleType = ImageView.ScaleType.FIT_CENTER
+            },
+            LinearLayout.LayoutParams(dp(105), dp(105))
+        )
+    }
+
+    if (apps.isNotEmpty()) {
+        updatePreview(apps.first())
+    }
+
+    // ITENS DA LISTA
+
+    apps.forEach { info ->
+
+        val item = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            background = rounded(
+                Color.TRANSPARENT, 13
+            )
+            setPadding(dp(10), dp(7), dp(8), dp(7))
             isFocusable = true
             isClickable = true
-            background = rounded(panel, 13, purple)
-            setPadding(dp(15), dp(10), dp(15), dp(10))
-            addView(label("✦", 19f, neon, true))
+
             addView(
-                label("  Explorar aplicativos", 13f, white, true)
+                ImageView(this@MainActivity).apply {
+                    setImageDrawable(
+                        info.loadIcon(packageManager)
+                    )
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                },
+                LinearLayout.LayoutParams(dp(39), dp(39))
             )
+
+            addView(
+                label(
+                    info.loadLabel(packageManager).toString(),
+                    13f, white, true
+                ).apply {
+                    setPadding(dp(11), 0, 0, 0)
+                    maxLines = 2
+                },
+                LinearLayout.LayoutParams(0, -2, 1f)
+            )
+
+            setOnFocusChangeListener { v, focused ->
+
+                if (focused) {
+                    updatePreview(info)
+                    v.background = rounded(
+                        purple, 13, neon
+                    )
+                    v.scaleX = 1.03f
+                    v.scaleY = 1.03f
+                } else {
+                    v.background = rounded(
+                        Color.TRANSPARENT, 13
+                    )
+                    v.scaleX = 1f
+                    v.scaleY = 1f
+                }
+            }
+
             setOnClickListener {
-                showSection("Aplicativos")
+                launchApp(info)
             }
-            prepareContentFocus(this)
         }
 
-        val exploreLp = LinearLayout.LayoutParams(-2, dp(43))
-        exploreLp.topMargin = dp(12)
-        content.addView(explore, exploreLp)
-
-        content.addView(
-            label("Acesso rápido", 20f, white, true).apply {
-                setPadding(0, dp(24), 0, dp(12))
-            }
+        val lp = LinearLayout.LayoutParams(
+            -1, dp(56)
         )
+        lp.bottomMargin = dp(5)
 
-        val quick = allApps().take(6)
-
-        if (quick.isEmpty()) {
-            emptyMessage("Nenhum aplicativo encontrado.")
-        } else {
-            addAppRows(quick)
-        }
-
-        content.addView(
-            label("Descubra", 20f, white, true).apply {
-                setPadding(0, dp(22), 0, dp(12))
-            }
-        )
-
-        val categories = listOf(
-            Triple("▶", "Filmes e séries", "Filmes e séries"),
-            Triple("♫", "Música", "Música"),
-            Triple("▦", "Biblioteca", "Aplicativos")
-        )
-
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-
-        categories.forEach { (icon, title, target) ->
-            val tile = categoryCard(icon, title) {
-                showSection(target)
-            }
-
-            val lp = LinearLayout.LayoutParams(0, dp(82), 1f)
-            lp.rightMargin = dp(10)
-            row.addView(tile, lp)
-        }
-
-        content.addView(row)
+        appList.addView(item, lp)
     }
+
+    appScroll.addView(appList)
+
+    appColumn.addView(
+        appScroll,
+        LinearLayout.LayoutParams(-1, 0, 1f)
+    )
+
+    // PAINEL DE INFORMAÇÕES DO SISTEMA
+
+    val widgets = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+    }
+
+    val memoryManager =
+        getSystemService(ACTIVITY_SERVICE) as ActivityManager
+
+    val memoryInfo = ActivityManager.MemoryInfo()
+    memoryManager.getMemoryInfo(memoryInfo)
+
+    val ramUsed = memoryInfo.totalMem - memoryInfo.availMem
+    val ramPercent =
+        (ramUsed * 100 / memoryInfo.totalMem).toInt()
+
+    val stat = android.os.StatFs(
+        android.os.Environment.getDataDirectory().path
+    )
+
+    val totalStorage =
+        stat.blockCountLong * stat.blockSizeLong
+
+    val freeStorage =
+        stat.availableBlocksLong * stat.blockSizeLong
+
+    val usedStorage = totalStorage - freeStorage
+
+    val storagePercent =
+        if (totalStorage > 0)
+            (usedStorage * 100 / totalStorage).toInt()
+        else 0
+
+    fun addWidget(
+        title: String,
+        value: String,
+        detail: String,
+        symbol: String
+    ) {
+        val widget = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = rounded(panel, 16, purple)
+            setPadding(dp(13), dp(12), dp(10), dp(12))
+
+            addView(
+                label(symbol, 23f, neon, true)
+            )
+
+            addView(
+                label(title, 13f, white, true)
+                    .apply {
+                        setPadding(0, dp(7), 0, dp(5))
+                    }
+            )
+
+            addView(
+                label(value, 19f, neon, true)
+            )
+
+            addView(
+                label(detail, 10f, muted)
+                    .apply {
+                        setPadding(0, dp(4), 0, 0)
+                    }
+            )
+        }
+
+        val lp = LinearLayout.LayoutParams(
+            0, dp(135), 1f
+        )
+        lp.rightMargin = dp(8)
+
+        widgets.addView(widget, lp)
+    }
+
+    addWidget(
+        "Clima",
+        "--",
+        "Sem dados disponíveis",
+        "☀"
+    )
+
+    addWidget(
+        "Uso de RAM",
+        "$ramPercent%",
+        "${android.text.format.Formatter.formatFileSize(this, ramUsed)} utilizados",
+        "▦"
+    )
+
+    addWidget(
+        "Armazenamento",
+        "$storagePercent%",
+        "${android.text.format.Formatter.formatFileSize(this, usedStorage)} utilizados",
+        "▤"
+    )
+
+    addWidget(
+        "Sistema",
+        "Conectado",
+        "${android.os.Build.MODEL} • Android ${android.os.Build.VERSION.RELEASE}",
+        "⌁"
+    )
+
+    // MONTAGEM FINAL
+
+    val leftParams = LinearLayout.LayoutParams(
+        dp(218), -1
+    )
+
+    dashboard.addView(appColumn, leftParams)
+
+    rightColumn.addView(
+        preview,
+        LinearLayout.LayoutParams(-1, 0, 1f)
+    )
+
+    val widgetParams = LinearLayout.LayoutParams(
+        -1, dp(135)
+    )
+    widgetParams.topMargin = dp(12)
+
+    rightColumn.addView(widgets, widgetParams)
+
+    dashboard.addView(
+        rightColumn,
+        LinearLayout.LayoutParams(0, -1, 1f)
+    )
+
+    content.addView(
+        dashboard,
+        LinearLayout.LayoutParams(-1, -1)
+    )
+}
 
     private fun categoryCard(
         icon: String,
