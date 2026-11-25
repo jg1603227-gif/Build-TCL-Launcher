@@ -850,8 +850,9 @@ private fun showSettings() {
 
         val lp = LinearLayout.LayoutParams(-1, dp(76))
         lp.bottomMargin = dp(10)
-        content.addView(item, lp)
+                content.addView(item, lp)
     }
+}
 }
 
 
