@@ -679,6 +679,95 @@ class MainActivity : Activity() {
         ).any { text.contains(it) }
     }
 
+    
     private fun isMusicApp(info: ResolveInfo): Boolean {
         val text = (
+            info.loadLabel(packageManager).toString() +
+                " " + info.activityInfo.packageName
+            ).lowercase(Locale.ROOT)
+
+        return listOf(
+            "spotify", "deezer", "youtube music",
+            "amazon music", "tidal", "soundcloud", "music"
+        ).any { text.contains(it) }
+    }
+
+    private fun showSettings() {
+        heading(
+            "Configurações",
+            "Personalize sua experiência no TCL Launcher."
+        )
+
+        val options = listOf(
+            "Atualizar aplicativos" to
+                "Recarrega a lista de aplicativos da TV.",
+            "Configurações do Android" to
+                "Abre as configurações do sistema.",
+            "Sobre o launcher" to
+                "TCL Launcher 2.0 • Neon Edition."
+        )
+
+        options.forEach { (title, description) ->
+            val item = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(18), dp(12), dp(18), dp(12))
+                background = rounded(card, 15)
+                isFocusable = true
+                isClickable = true
+
+                addView(label(title, 16f, white, true))
+                addView(
+                    label(description, 13f, muted).apply {
+                        setPadding(0, dp(5), 0, 0)
+                    }
+                )
+
+                setOnFocusChangeListener { v, focused ->
+                    v.background = rounded(
+                        if (focused) purple else card,
+                        15,
+                        if (focused) neon else Color.TRANSPARENT
+                    )
+                }
+
+                setOnClickListener {
+                    when (title) {
+                        "Atualizar aplicativos" ->
+                            showSection("Aplicativos")
+
+                        "Configurações do Android" -> {
+                            try {
+                                startActivity(
+                                    Intent(
+                                        android.provider.Settings.ACTION_SETTINGS
+                                    )
+                                )
+                            } catch (_: Exception) {
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Configurações indisponíveis.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+
+                        else -> Toast.makeText(
+                            this@MainActivity,
+                            "TCL Launcher 2.0 • Neon Edition",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                prepareContentFocus(this)
+            }
+
+            val lp = LinearLayout.LayoutParams(-1, dp(76))
+            lp.bottomMargin = dp(10)
+            content.addView(item, lp)
+        }
+    }
+}
+
   
