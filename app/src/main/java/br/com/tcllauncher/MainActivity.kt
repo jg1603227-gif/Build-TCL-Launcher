@@ -504,55 +504,57 @@ private fun showHome() {
 
     val preview = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
+        gravity = Gravity.CENTER
         background = gradient()
         setPadding(dp(25), dp(20), dp(25), dp(20))
     }
 
-    fun updatePreview(info: ResolveInfo) {
-        preview.removeAllViews()
+    
+fun updatePreview(info: ResolveInfo) {
+    preview.removeAllViews()
 
-        val details = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
+    preview.gravity = Gravity.CENTER
+
+    val details = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER
+    }
+
+    details.addView(
+        ImageView(this).apply {
+            setImageDrawable(info.loadIcon(packageManager))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        },
+        LinearLayout.LayoutParams(dp(112), dp(112)).apply {
+            bottomMargin = dp(18)
         }
+    )
 
-        details.addView(
-            label(
-                "APLICATIVO SELECIONADO",
-                11f, neon, true
-            )
-        )
+    details.addView(
+        label(
+            info.loadLabel(packageManager).toString(),
+            25f, white, true
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+    )
 
-        details.addView(
-            label(
-                info.loadLabel(packageManager).toString(),
-                27f, white, true
-            ).apply {
-                setPadding(0, dp(10), 0, dp(8))
-            }
-        )
+    details.addView(
+        label(
+            "Pressione OK para iniciar",
+            12f, neon
+        ).apply {
+            gravity = Gravity.CENTER
+            setPadding(0, dp(10), 0, 0)
+        }
+    )
 
-        details.addView(
-            label(
-                "Aplicativo instalado na sua TCL TV.",
-                14f, muted
-            )
-        )
+    preview.addView(
+        details,
+        LinearLayout.LayoutParams(-1, -1)
+    )
+}
 
-        details.addView(
-            label(
-                "Pressione OK para abrir",
-                12f, neon, true
-            ).apply {
-                setPadding(0, dp(22), 0, 0)
-            }
-        )
-
-        preview.addView(
-            details,
-            LinearLayout.LayoutParams(0, -1, 1f)
-        )
 
         preview.addView(
             ImageView(this@MainActivity).apply {
@@ -757,16 +759,16 @@ val ramPercent = if (memoryInfo.totalMem > 0L) {
     dashboard.addView(appColumn, leftParams)
 
     rightColumn.addView(
-        preview,
-        LinearLayout.LayoutParams(-1, 0, 1f)
-    )
+    preview,
+    LinearLayout.LayoutParams(-1, 0, 1f)
+)
 
-    val widgetParams = LinearLayout.LayoutParams(
-        -1, dp(135)
-    )
-    widgetParams.topMargin = dp(12)
+val widgetParams = LinearLayout.LayoutParams(
+    -1, dp(125)
+)
+widgetParams.topMargin = dp(12)
 
-    rightColumn.addView(widgets, widgetParams)
+rightColumn.addView(widgets, widgetParams)
 
     dashboard.addView(
         rightColumn,
