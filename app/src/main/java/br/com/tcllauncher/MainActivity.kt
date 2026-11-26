@@ -555,16 +555,13 @@ private fun showHome() {
         )
 
         preview.addView(
-            ImageView(this).apply {
-                setImageDrawable(
-                    info.loadIcon(packageManager)
-                )
-                scaleType = ImageView.ScaleType.FIT_CENTER
-            },
-            LinearLayout.LayoutParams(dp(105), dp(105))
-        )
-    }
-
+            ImageView(this@MainActivity).apply {
+    setImageDrawable(info.loadIcon(packageManager))
+    scaleType = ImageView.ScaleType.FIT_CENTER
+    background = rounded(panel, 12, purple)
+    clipToOutline = true
+    setPadding(dp(3), dp(3), dp(3), dp(3))
+            }
     if (apps.isNotEmpty()) {
         updatePreview(apps.first())
     }
@@ -594,15 +591,9 @@ private fun showHome() {
             )
 
             addView(
-                label(
-                    info.loadLabel(packageManager).toString(),
-                    13f, white, true
-                ).apply {
-                    setPadding(dp(11), 0, 0, 0)
-                    maxLines = 2
-                },
-                LinearLayout.LayoutParams(0, -2, 1f)
-            )
+    View(this@MainActivity),
+    LinearLayout.LayoutParams(0, 1, 1f)
+)
 
             setOnFocusChangeListener { v, focused ->
 
@@ -649,6 +640,7 @@ private fun showHome() {
     }
 
     
+
 val memoryManager = getSystemService(
     android.content.Context.ACTIVITY_SERVICE
 ) as android.app.ActivityManager
